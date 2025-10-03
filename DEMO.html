@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sword – EU AI Act: Σύνοψη & Tracker (v3.2 traffic lights) — FIXED + PDF</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --bg:#0b1220; --card:#121a2b; --text:#e6eefc; --muted:#94a3b8;
+    --accent:#6ee7b7; --danger:#ef4444; --warn:#f59e0b; --ok:#22c55e;
+    --ink:#0b1220; --line:#1e293b;
+    --grey:#475569;
+  }
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .wrap{max-width:1150px;margin:30px auto;padding:0 16px}
+  .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .logo{width:34px;height:34px;border-radius:7px;background:var(--accent);color:var(--ink);display:grid;place-items:center;font-weight:900}
+  h1{font-size:22px;margin:0 0 2px}
+  p{color:var(--muted);margin:4px 0 14px}
+
+  .tabs{display:flex;gap:8px;margin:6px 0 14px}
+  .tab{background:#0f1729;color:#cbd5e1;border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+  .tab.active{background:var(--accent);color:var(--ink);border-color:transparent}
+  .hidden{display:none}
+
+  input[type=file]{padding:10px;border:1px dashed #334155;border-radius:10px;background:#0f1729;color:var(--text)}
+  button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;color:#0b1220;background:var(--accent);font-weight:600}
+  .btn-ghost{background:#0f1729;color:#cbd5e1;border:1px solid #334155}
+
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px}
+  th{color:#cbd5e1;text-align:left}
+  .pill{padding:4px 8px;border-radius:999px;font-weight:600;font-size:12px}
+  .risk-high{background:#fca5a5;color:#111}
+  .risk-limited{background:#fde68a;color:#111}
+  .risk-proh{background:#f87171;color:#111}
+  .risk-min{background:#a7f3d0;color:#111}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+  .controls label{color:#cbd5e1}
+  .spacer{flex:1}
+
+  .wave-status{display:flex;align-items:center;gap:8px}
+  .status-dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+  .status-ok{background:var(--ok)}
+  .status-warn{background:var(--warn)}
+  .status-danger{background:var(--danger)}
+  .status-grey{background:var(--grey)}
+  .small{font-size:12px;color:#94a3b8}
+
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+  .stat{background:#0f1729;border:1px solid #1f2937;border-radius:12px;padding:8px 12px;font-size:13px;color:#cbd5e1}
+
+  .kanban{display:grid;grid-template-columns:1fr;gap:12px}
+  .task{display:grid;grid-template-columns:1.5fr .6fr 1.1fr 1fr .9fr auto;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0f1729}
+  .task input[type=date]{background:#0b1322;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:6px;width:100%}
+  .task .dte{ margin-right:10px; }
+  .task .chk{ margin-right:8px; }
+
+  .task input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) brightness(1.2) contrast(1.2); cursor: pointer; }
+
+  .wd-ok{ border-color:rgba(34,197,94,.5) !important; background:rgba(34,197,94,.06) !important; }
+  .wd-warn{ border-color:rgba(245,158,11,.6) !important; background:rgba(245,158,11,.06) !important; }
+  .wd-danger{ border-color:rgba(239,68,68,.7) !important; background:rgba(239,68,68,.06) !important; }
+  .wd-grey{ border-color:#334155 !important; background:#0f1729 !important; }
+
+  #wave-deadline::-webkit-calendar-picker-indicator{ opacity:.95; cursor:pointer; }
+  .wd-ok::-webkit-calendar-picker-indicator{ filter: invert(62%) sepia(67%) saturate(411%) hue-rotate(86deg) contrast(1.05); }
+  .wd-warn::-webkit-calendar-picker-indicator{ filter: invert(69%) sepia(92%) saturate(626%) hue-rotate(360deg) contrast(1.05); }
+  .wd-danger::-webkit-calendar-picker-indicator{ filter: invert(39%) sepia(96%) saturate(5573%) hue-rotate(346deg) brightness(0.95) contrast(1.05); }
+  .wd-grey::-webkit-calendar-picker-indicator{ filter: invert(85%) brightness(0.9); }
+
+  #wave-deadline{ outline:none; transition: box-shadow .15s, background-color .15s; }
+  .wd-ok:focus{ box-shadow:0 0 0 2px rgba(34,197,94,.35); }
+  .wd-warn:focus{ box-shadow:0 0 0 2px rgba(245,158,11,.45); }
+  .wd-danger:focus{ box-shadow:0 0 0 2px rgba(239,68,68,.5); }
+
+  .task div:nth-child(5){ display:inline-grid !important; grid-auto-flow:row; grid-template-columns:max-content; row-gap:6px; justify-items:stretch; align-items:start; }
+  .file-btn{display:inline-block;padding:6px 10px;border:1px solid #334155;border-radius:10px;background:#0f1729;color:#cbd5e1;cursor:pointer;font-size:12px}
+  .file-btn:hover{background:#0b1322}
+  .files-list{margin-top:8px;padding:8px;border:1px dashed #334155;border-radius:10px;background:#0b1322}
+  .files-list ul{margin:6px 0 0 18px}
+  .files-list a{color:#93c5fd;text-decoration:none}
+  .files-list button{margin-left:6px;background:#0f1729;color:#cbd5e1;border:1px solid #334155;padding:2px 8px;border-radius:8px;font-size:12px}
+
+  .badge{border:1px solid #334155;border-radius:999px;padding:4px 8px;font-size:12px;color:#cbd5e1}
+  .owner-sword{background:#312e81}
+  .owner-client{background:#065f46}
+
+  .tl-done{box-shadow:0 0 0 2px rgba(34,197,94,.5) inset;background:rgba(34,197,94,.08)}
+  .tl-warn{box-shadow:0 0 0 2px rgba(245,158,11,.6) inset;background:rgba(245,158,11,.08)}
+  .tl-overdue{box-shadow:0 0 0 2px rgba(239,68,68,.7) inset;background:rgba(239,68,68,.08)}
+  .tl-nodate{box-shadow:0 0 0 2px rgba(71,85,105,.6) inset;background:rgba(71,85,105,.08)}
+
+  .progress{height:10px;background:#0f1729;border-radius:999px;overflow:hidden;margin:8px 0 10px}
+  .bar{height:100%;background:var(--accent);width:0%}
+
+  .footer{color:#64748b;font-size:12px;margin-top:12px}
+
+  .file-flag{ display:inline-flex; align-items:center; gap:6px; margin-left:8px; font-size:12px; color:#cbd5e1; }
+  .file-flag input{ transform: translateY(1px); }
+  .badge-acc{ padding:2px 6px; border-radius:999px; font-size:11px; background:#0b1729; border:1px solid #334155; color:#cbd5e1; margin-left:6px; }
+  .badge-acc.ok{ background:rgba(34,197,94,.1); border-color:rgba(34,197,94,.5); color:#a7f3d0; }
+
+  .sys-card{background:#0f1729;border:1px solid #334155;border-radius:12px;padding:12px;margin:12px 0; position:relative;}
+  .sys-head{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:8px}
+  .sys-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .qgroup{margin:14px 0; padding:12px; background:#0b1322; border:1px solid #334155; border-radius:12px;}
+  .qset{display:grid; grid-template-columns:repeat(2, minmax(320px, 1fr)); gap:10px}
+  .qset.compact{grid-template-columns:repeat(4, minmax(160px, 1fr));}
+  .qset label{display:block; padding:10px 12px; border:1px solid #263042; border-radius:10px; background:#0f1729; line-height:1.35}
+  .qset label:hover{border-color:#3a4a63}
+  .qset input[type=checkbox]{transform:scale(1.1); margin-right:8px; vertical-align:middle}
+  .qid{font-weight:700; color:#cbd5e1; margin-left:6px}
+  .qtext{display:block; font-size:12px; color:#94a3b8; margin:6px 0 0 26px}
+  .collapse-btn{cursor:pointer; font-size:13px; opacity:.9}
+  .collapse-btn:after{content:"▾"; margin-left:6px; opacity:.7}
+  .collapsed .collapse-btn:after{content:"▸";}
+  .collapsed .qset{display:none}
+
+  .sys-toggle{ cursor:pointer; user-select:none; font-size:14px; opacity:.9; border:1px solid #334155; background:#0f1729; color:#cbd5e1; padding:4px 8px; border-radius:8px; }
+  .sys-card.collapsed .sys-body{ display:none; }
+  .sys-card.collapsed .sys-toggle::after{ content:" ▸"; }
+  .sys-card:not(.collapsed) .sys-toggle::after{ content:" ▾"; }
+
+  .sys-preview{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px }
+  .sys-preview .pill{ background:#0f1729; border:1px solid #334155; color:#cbd5e1 }
+
+  .qitem .qtext{ display:block !important; }
+
+  /* Print helpers (for clean PDF capture) */
+  @media print {
+    .tabs, .controls, #ics, #save, #loadBtn { display:none !important; }
+    body { background:#fff !important; color:#000 !important; }
+    .card { box-shadow:none !important; background:#fff !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="brand">
+        <div class="logo">SW</div>
+        <div>
+          <h1>SWORD – EU AI Act: Σύνοψη & Tracker (v3.2)</h1>
+          <p>Traffic lights ανά task & wave • Autosave • XLSX parsing • JSON export/import • ICS export • PDF export.</p>
+        </div>
+      </div>
+<div id="auth" style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+  <input id="login-email" placeholder="Email για login" style="padding:6px;border-radius:8px;">
+  <button id="login-btn" class="btn-ghost">Send magic link</button>
+  <span id="auth-status" class="small"></span>
+  <button id="logout-btn" class="btn-ghost" style="display:none;">Logout</button>
+</div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="summary">Σύνοψη</button>
+        <button class="tab" data-tab="questionnaire">Ερωτηματολόγιο</button>
+        <button class="tab" data-tab="tracker">Tracker / Χρονοπρογραμματισμός</button>
+      </div>
+
+      <div id="summary" class="tab-pane">
+        <p>Ανέβασε Excel (<em>Systems Description</em>, <em>Systems Verification</em>) και πάτα <b>Εκτέλεση</b>.</p>
+        <div class="controls">
+          <input id="file" type="file" accept=".xlsx,.xls" />
+          <label class="small" style="display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="useQ"> Χρήση δεδομένων «Ερωτηματολόγιο»</label>
+          <button id="go">Εκτέλεση</button>
+          <button id="csv" title="Λήψη CSV" class="btn-ghost" style="display:none;">Λήψη CSV</button>
+          <button id="pdf" class="btn-ghost" style="display:none;">Λήψη PDF</button>
+        </div>
+        <div id="out"></div>
+        <div class="footer">Κανόνες: Q1.x (AI), Q2.1.x & Q2.2.x (Ρόλος), Q3.x (Scope), Q4.x/Q5.3/Q5.4 (Risk), Q6.x (Transparency).</div>
+      </div>
+
+      <div id="questionnaire" class="tab-pane hidden">
+        <h3>Ερωτηματολόγιο (QIDs)</h3>
+        <p class="small">Συμπλήρωσε τα QIDs σύμφωνα με το Playbook. Τα δεδομένα αποθηκεύονται local και μπορούν να εξαχθούν ως JSON.</p>
+
+        <div class="controls">
+          <button id="add-system">+ Προσθήκη Συστήματος</button>
+          <label class="small" style="display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="toggle-compact"> Συνοπτική εμφάνιση</label>
+          <button id="export-q" class="btn-ghost">Export JSON</button>
+          <input type="file" id="import-q" class="hidden" accept="application/json" />
+          <button id="import-q-btn" class="btn-ghost">Import JSON</button>
+          <span class="small" id="q-status"></span>
+        </div>
+
+        <div class="card" style="margin:10px 0;">
+          <h4>Στοιχεία Οντότητας</h4>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+            <label>Επωνυμία<br><input id="ent-name" placeholder="Legal name" style="background:#0f1729;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:8px"></label>
+            <label>VAT<br><input id="ent-vat" placeholder="VAT" style="background:#0f1729;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:8px"></label>
+            <label>Τύπος<br><input id="ent-type" placeholder="SA / LTD / PC ..." style="background:#0f1729;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:8px"></label>
+          </div>
+        </div>
+
+        <div id="systems"></div>
+      </div>
+
+      <div id="tracker" class="tab-pane hidden">
+        <h3>Κατάσταση έργου & ενέργειες</h3>
+        <div class="controls">
+          <label>Τρέχον κύμα:
+            <select id="phase" style="background:#0f1729;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:8px">
+              <option value="1">Wave 1 – Ταυτοποίηση & Ταξινόμηση</option>
+              <option value="2">Wave 2 – Discovery & Gap Analysis</option>
+              <option value="3">Wave 3 – Documentation Development</option>
+              <option value="4">Wave 4 – Ongoing Support & Training</option>
+            </select>
+          </label>
+
+          <div class="wave-status">
+            <label>Wave deadline:
+              <input type="date" id="wave-deadline" style="background:#0f1729;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:6px">
+            </label>
+            <span id="wave-dot" class="status-dot status-grey" title="Wave status"></span>
+            <span id="wave-eta" class="small"></span>
+          </div>
+
+          <div class="spacer"></div>
+          <label><input type="checkbox" id="clientOnly"> Μόνο Client tasks</label>
+          <button id="save" class="btn-ghost">Export / Backup (JSON)</button>
+          <input type="file" id="load" class="hidden" accept="application/json" />
+          <button id="loadBtn" class="btn-ghost">Φόρτωση</button>
+          <button id="ics">Λήψη .ics (Client tasks)</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat">Σύνολο: <b id="stat-total">0</b></div>
+          <div class="stat">Ολοκληρωμένα: <b id="stat-done">0</b></div>
+          <div class="stat">Εκκρεμή: <b id="stat-open">0</b></div>
+          <div class="stat">Καθυστερημένα: <b id="stat-overdue">0</b></div>
+        </div>
+        <div class="progress"><div class="bar" id="pbar"></div></div>
+
+        <div id="tasklist" class="kanban"></div>
+        <h4 style="margin-top:10px">Τι περιμένουμε από τον πελάτη τώρα</h4>
+        <ul id="client-now" style="margin-top:6px"></ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+// === Supabase init (βάλε τα δικά σου) ===
+const SUPABASE_URL  = "https://dsvtpuyoxnllnnbpaeva.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzdnRwdXlveG5sbG5uYnBhZXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0Njc4ODMsImV4cCI6MjA3NTA0Mzg4M30.XxHRFrAuXPjgNvNpneGf-sRL3p4_CzVeSGDrissv6pk";
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
+
+// === Magic-link login UI ===
+(async function initAuth(){
+  const email = document.getElementById('login-email');
+  const login = document.getElementById('login-btn');
+  const logout = document.getElementById('logout-btn');
+  const status = document.getElementById('auth-status');
+
+  function ui(user){
+    if(user){ status.textContent = ` συνδεδεμένος: ${user.email}`; login.disabled=true; email.disabled=true; logout.style.display='inline-block'; }
+    else { status.textContent=''; login.disabled=false; email.disabled=false; logout.style.display='none'; }
+  }
+
+  ui((await supa.auth.getUser()).data.user);
+  login.onclick = async ()=>{
+    if(!email.value) return alert('βάλε email');
+    const { error } = await supa.auth.signInWithOtp({ email: email.value, options:{ emailRedirectTo: window.location.href }});
+    if(error) alert(error.message); else alert('Σου στείλαμε magic link.');
+  };
+  logout.onclick = async ()=>{ await supa.auth.signOut(); ui(null); };
+  supa.auth.onAuthStateChange((_e,s)=>ui(s?.user||null));
+})();
+
+// ===== Tabs =====
+const tabBtns = document.querySelectorAll('.tab');
+const panes = {summary: document.getElementById('summary'), questionnaire: document.getElementById('questionnaire'), tracker: document.getElementById('tracker')};
+tabBtns.forEach(b=>b.onclick=()=>{ tabBtns.forEach(x=>x.classList.remove('active')); b.classList.add('active'); Object.values(panes).forEach(p=>p.classList.add('hidden')); panes[b.dataset.tab].classList.remove('hidden'); });
+
+// ===== SUMMARY (Workbook parsing) =====
+const REQUIRED = ["Systems Description","Systems Verification"];
+const OBLIGATIONS = {
+  "Provider|High-Risk":["RMS (Άρ.9)","Data Governance (Άρ.10)","Technical Docs (Άρ.11)","Human Oversight (Άρ.14)"],
+  "Deployer|High-Risk":["Oversight & Logs (Άρ.26)","FRIA (Άρ.27)","AI Literacy/Transparency (Άρ.4,50)"],
+  "Provider|Limited":["Transparency (Άρ.50)"],
+  "Deployer|Limited":["Transparency (Άρ.50)","AI Literacy (Άρ.4)"]
+};
+function sysCols(df){ const cols=[]; df[0].forEach((h,idx)=>{ if(String(h||'').toUpperCase().startsWith('SYSTEM')) cols.push(idx); }); return cols; }
+function findRowByQID(sheet, qid){ for(const r of sheet){ for(const c of r){ if(String(c).trim()===qid) return r; } } return null; }
+function ans(row, colIdx){ if(!row) return ''; const v = row[colIdx]; return (v==null? '' : String(v).trim()); }
+function anyYes(sheet, qids, colIdx){ return qids.some(q=>/^(Y|YES|TRUE|1)$/i.test(ans(findRowByQID(sheet,q), colIdx))); }
+function roleFrom(sheet,colIdx){
+  if(anyYes(sheet,["Q2.1.1"],colIdx)) return "Provider";
+  let base = "Άγνωστος";
+  if(anyYes(sheet,["Q2.1.2"],colIdx)) base = "Deployer";
+  else if(anyYes(sheet,["Q2.1.3"],colIdx)) base = "Importer";
+  else if(anyYes(sheet,["Q2.1.4"],colIdx)) base = "Distributor";
+  else if(anyYes(sheet,["Q2.1.5"],colIdx)) base = "Authorised Representative";
+  if(["Deployer","Importer","Distributor","Authorised Representative"].includes(base) && anyYes(sheet,["Q2.2.1","Q2.2.2","Q2.2.3"],colIdx)) return "Provider";
+  return base;
+}
+function aiFlag(sheet,colIdx){ return anyYes(sheet,["Q1.1","Q1.2","Q1.3","Q1.4","Q1.5"],colIdx) ? "Ναι":"Όχι"; }
+function scopeFlag(sheet,colIdx){
+  if(anyYes(sheet,["Q3.1","Q3.2","Q3.3","Q3.4"],colIdx)) return "Εκτός Πεδίο";
+  if(anyYes(sheet,["Q3.5","Q3.6","Q3.7"],colIdx)) return "Εντός Πεδίο";
+  return "Άγνωστο";
+}
+function riskFlag(sheet,colIdx){
+  if(anyYes(sheet,["Q4.1","Q4.2","Q4.3","Q4.4","Q4.5","Q4.6","Q4.7","Q4.8","Q4.8.1"],colIdx)) return "Απαγορευμένο";
+  const high=["Q5.3","Q5.3.1","Q5.3.2","Q5.3.3","Q5.3.4","Q5.3.5"], lim=["Q6.2","Q6.3","Q6.4","Q6.5","Q6.6","Q6.6.1"];
+  if(anyYes(sheet,high,colIdx)) return anyYes(sheet,["Q5.4","Q5.4.1","Q5.4.2","Q5.4.3","Q5.4.4"],colIdx)?"Υψηλού Κινδύνου (εξαίρεση)":"Υψηλού Κινδύνου";
+  if(anyYes(sheet,lim,colIdx)) return "Περιορισμένου Κινδύνου";
+  return "Ελάχιστου/Άγνωστου";
+}
+function systemNames(sysSheet, sysIdxs){ const rowQ02 = findRowByQID(sysSheet,"Q0.2"); return sysIdxs.map((idx,i)=>{ const name = ans(rowQ02, idx); return name && name.toLowerCase()!=="nan" ? name : `Σύστημα #${i+1}`; }); }
+function pill(text, cls){ return `<span class="pill ${cls}">${text}</span>`; }
+function riskPill(r){ if(/^Υψηλού Κινδύνου/.test(r)) return pill(r,'risk-high'); if(r==="Περιορισμένου Κινδύνου") return pill(r,'risk-limited'); if(r==="Απαγορευμένο") return pill(r,'risk-proh'); return pill(r,'risk-min'); }
+function toCSV(rows){ if(!rows.length) return ''; const headers = Object.keys(rows[0]); const esc = v => '"'+String(v).replace(/"/g,'""')+'"'; return [headers.join(','), ...rows.map(r=>headers.map(h=>esc(r[h]??'')).join(','))].join('\n'); }
+
+async function run(file){
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  for(const r of REQUIRED){ if(!wb.Sheets[r]) throw new Error(`Λείπει φύλλο: ${r}`); }
+  const SD = XLSX.utils.sheet_to_json(wb.Sheets["Systems Description"], {header:1, blankrows:false});
+  const SV = XLSX.utils.sheet_to_json(wb.Sheets["Systems Verification"], {header:1, blankrows:false});
+  const colIdxs = sysCols(SD);
+  if(!colIdxs.length) throw new Error('Δεν βρέθηκαν στήλες SYSTEM #');
+  const names = systemNames(SD, colIdxs);
+
+  const rows = [], obRows = [];
+  for(let i=0;i<colIdxs.length;i++){
+    const idx = colIdxs[i];
+    const name = names[i];
+    const ai = aiFlag(SV, idx);
+    const role = roleFrom(SV, idx);
+    const scope = scopeFlag(SV, idx);
+    const risk = riskFlag(SV, idx);
+    rows.push({"Σύστημα":name, "Είναι AI;":ai, "Ρόλος Οντότητας":role, "Πεδίο Εφαρμογής":scope, "Επίπεδο Κινδύνου":risk});
+    const key = `${role}|${risk.startsWith('Υψηλού Κινδύνου')?'High-Risk':(risk==='Περιορισμένου Κινδύνου'?'Limited':'')}`;
+    (OBLIGATIONS[key]||[]).forEach(ob=> obRows.push({"Σύστημα":name, "Ρόλος":role, "Κίνδυνος":risk, "Υποχρέωση":ob}));
+  }
+
+  const out = document.getElementById('out');
+  const table1 = [`<h3>Σύνοψη</h3><table><thead><tr><th>Σύστημα</th><th>Είναι AI;</th><th>Ρόλος Οντότητας</th><th>Πεδίο Εφαρμογής</th><th>Επίπεδο Κινδύνου</th></tr></thead><tbody>`,
+    ...rows.map(r=>`<tr><td>${r["Σύστημα"]}</td><td>${r["Είναι AI;"]}</td><td>${r["Ρόλος Οντότητας"]||''}</td><td>${r["Πεδίο Εφαρμογής"]}</td><td>${riskPill(r["Επίπεδο Κινδύνου"])}</td></tr>`),
+  `</tbody></table>`].join('');
+
+  const table2 = [`<h3 style="margin-top:18px;">Υποχρεώσεις (σύνοψη)</h3><table><thead><tr><th>Σύστημα</th><th>Ρόλος</th><th>Κίνδυνος</th><th>Υποχρέωση</th></tr></thead><tbody>`,
+    ...obRows.map(r=>`<tr><td>${r["Σύστημα"]}</td><td>${r["Ρόλος"]}</td><td>${r["Κίνδυνος"]}</td><td>${r["Υποχρέωση"]}</td></tr>`),
+  `</tbody></table>`].join('');
+
+  out.innerHTML = table1 + table2;
+
+  const csvBtn = document.getElementById('csv');
+  const pdfBtn = document.getElementById('pdf');
+  const csv = toCSV(rows);
+  csvBtn.onclick = ()=>{ const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a = Object.assign(document.createElement('a'), {href:url, download:'summary.csv'}); a.click(); URL.revokeObjectURL(url); };
+  csvBtn.style.display = 'inline-block';
+  pdfBtn.style.display = 'inline-block';
+}
+
+// ===== TRACKER =====  (same as previous fixed version)
+const TASKS = {
+  1: [
+    {title:"Συμφωνία συστημάτων προς αξιολόγηση (scope)", owner:"Client"},
+    {title:"Συμπλήρωση Entity Demographics (Excel)", owner:"Client"},
+    {title:"Συμπλήρωση Systems Description (Excel)", owner:"Client"},
+    {title:"Workshops επαλήθευσης απαντήσεων (Systems Verification)", owner:"Sword"},
+    {title:"Κατάταξη: AI/Μη-AI, Ρόλος, Scope, Risk (ανά σύστημα)", owner:"Sword"},
+    {title:"Σύνταξη & παράδοση Risk Classification Report (Wave 1 deliverable)", owner:"Sword"}
+  ],
+  2: [
+    {title:"Παράδοση υφιστάμενων πολιτικών/τεκμηρίωσης (ISO, DPIA, κλπ.)", owner:"Client"},
+    {title:"Mapping υποχρεώσεων (Annex/LoOD) ανά ρόλο & κίνδυνο", owner:"Sword"},
+    {title:"Σύγκριση τεκμηρίωσης πελάτη vs υποχρεώσεων (gap σημειώσεις)", owner:"Sword"},
+    {title:"Σύνταξη & παράδοση Gap Analysis Report", owner:"Sword"},
+    {title:"Ανασκόπηση/έγκριση Gap Report", owner:"Client"}
+  ],
+  3: [
+    {title:"Κατάλογος deliverables προς ανάπτυξη (ανά άρθρο)", owner:"Sword"},
+    {title:"Παροχή inputs/ιδιοκτητών από business/legal/IT", owner:"Client"},
+    {title:"Σύνταξη πολιτικών & διαδικασιών: RMS (Άρ.9), Data Gov (Άρ.10), Tech Docs (Άρ.11)", owner:"Sword"},
+    {title:"Human Oversight (Άρ.14), Accuracy/Robustness/Cybersecurity (Άρ.15), Logging (Άρ.12/19)", owner:"Sword"},
+    {title:"QMS/PMM/Incidents/Authorities comms (Άρ.17/18/20/21)", owner:"Sword"},
+    {title:"Παράδοση & κύκλος διορθώσεων/έγκρισης", owner:"Client"}
+  ],
+  4: [
+    {title:"Εκπαίδευση (AI literacy, human oversight, ops)", owner:"Sword"},
+    {title:"Θέσπιση monitoring, incident response, καταγραφών", owner:"Client"},
+    {title:"Quarterly review, updates, continuous improvement", owner:"Sword"}
+  ]
+};
+
+const state = { wave:1, waveDeadline:"", clientOnly:false, tasks:{} };
+const LSKEY = "sword_tracker_v32_state";
+const tasklist = document.getElementById('tasklist');
+const clientNow = document.getElementById('client-now');
+const pbar = document.getElementById('pbar');
+const phaseSel = document.getElementById('phase');
+const waveDeadlineInput = document.getElementById('wave-deadline');
+const waveEta = document.getElementById('wave-eta');
+const waveDot = document.getElementById('wave-dot');
+const clientOnlyChk = document.getElementById('clientOnly');
+const statTotal = document.getElementById('stat-total');
+const statDone = document.getElementById('stat-done');
+const statOpen = document.getElementById('stat-open');
+const statOverdue = document.getElementById('stat-overdue');
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function daysBetween(a,b){ const d1=new Date(a), d2=new Date(b); return Math.round((d2-d1)/(1000*60*60*24)); }
+function maxDateStr(dates){ const ds=dates.filter(Boolean); if(!ds.length) return ""; return ds.sort().slice(-1)[0]; }
+
+// === Upload στο Supabase Storage αντί για dataUrl ===
+async function readFilesToData(files){
+  const { data:{ user } } = await supa.auth.getUser();
+  if(!user){ alert('Κάνε login (email magic link) για να ανεβάσεις αρχεία.'); return []; }
+
+  const MAX_MB = 50, out = [];
+  for(const f of files){
+    if(f.size > MAX_MB*1024*1024){ alert(`"${f.name}" > ${MAX_MB}MB — παραλείπεται.`); continue; }
+
+    const safe = f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}_${safe}`;
+
+    const { error } = await supa.storage.from('client-files').upload(path, f, {
+      cacheControl:'3600', upsert:false, contentType: f.type||'application/octet-stream'
+    });
+    if(error){ alert('Σφάλμα upload: '+error.message); continue; }
+
+    const { data:signed } = await supa.storage.from('client-files').createSignedUrl(path, 3600);
+    out.push({
+      name:f.name, size:f.size, type:f.type||'application/octet-stream',
+      dataUrl: signed?.signedUrl||'',           // για το κουμπί λήψης στο UI
+      storage_bucket:'client-files', storage_path:path,
+      flags:{ud:false,cmt:false,acc:false}
+    });
+  }
+  return out;
+}
+
+
+function upgradeFileSchema(){
+  Object.values(state.tasks||{}).forEach(waveArr=>{
+    (waveArr||[]).forEach(t=>{
+      (t.files||[]).forEach(file=>{ if(!file.flags) file.flags = {ud:false, cmt:false, acc:false}; });
+    });
+  });
+}
+
+function ensureWaveState(w){
+  if(!state.tasks[w]) state.tasks[w] = TASKS[w].map(()=>({date:"",done:false,files:[]}));
+  state.tasks[w].forEach(t=>{ if(!t.files) t.files=[]; });
+}
+function saveToLocal(){ try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){} }
+function loadFromLocal(){
+  try{
+    const raw = localStorage.getItem(LSKEY); if(!raw) return;
+    const data = JSON.parse(raw)||{};
+    state.wave = Number(data.wave)||1;
+    state.waveDeadline = data.waveDeadline||"";
+    state.clientOnly = !!data.clientOnly;
+    state.tasks = data.tasks||{};
+    phaseSel.value = String(state.wave);
+    waveDeadlineInput.value = state.waveDeadline;
+    clientOnlyChk.checked = state.clientOnly;
+  }catch(e){}
+}
+
+function taskClass(dateStr, done){
+  if(done) return 'tl-done';
+  if(!dateStr) return 'tl-nodate';
+  const today = todayStr();
+  if(dateStr < today) return 'tl-overdue';
+  const ddiff = daysBetween(today, dateStr);
+  if(ddiff <= 3) return 'tl-warn';
+  return '';
+}
+function waveDeadlineClass(dateStr){
+  if(!dateStr) return 'wd-grey';
+  const diff = daysBetween(todayStr(), dateStr);
+  if(diff < 0) return 'wd-danger';
+  if(diff <= 7) return 'wd-warn';
+  return 'wd-ok';
+}
+
+function renderTasks(){
+  const cur = Number(phaseSel.value);
+  state.wave = cur;
+  ensureWaveState(cur);
+  const items = TASKS[cur];
+  const arr = state.tasks[cur];
+
+  tasklist.innerHTML = '';
+  clientNow.innerHTML = '';
+
+  let total=0, done=0, overdue=0;
+  const tday = todayStr();
+
+  items.forEach((t,i)=>{
+    if(clientOnlyChk.checked && t.owner!=='Client') return;
+    total++;
+    const valDate = arr[i].date || "";
+    const isDone = !!arr[i].done;
+    const cls = taskClass(valDate, isDone);
+    if(valDate && (valDate < tday) && !isDone) overdue++;
+
+    const row = document.createElement('div');
+    row.className = `task ${cls}`;
+    row.innerHTML = `
+      <div>${t.title}</div>
+      <div><span class="badge ${t.owner==='Sword'?'owner-sword':'owner-client'}">${t.owner}</span></div>
+      <div><input type="date" class="dte" data-idx="${i}" value="${valDate}"/></div>
+      <div><label><input type="checkbox" class="chk" data-idx="${i}" ${isDone?'checked':''}/> Ολοκληρώθηκε</label></div>
+      <div>
+        <label class="file-btn">+ Αρχεία
+          <input type="file" class="file" data-idx="${i}" multiple hidden />
+        </label>
+        <button class="file-btn view" data-idx="${i}" style="margin-left:6px">
+          Λίστα (📎 <span id="fcount-${i}">${formatCounter(arr[i].files||[])}</span>)
+        </button>
+      </div>
+      <div style="opacity:.7">${i+1}/${items.length}</div>`;
+
+    const list = document.createElement('div');
+    list.className = 'files-list hidden';
+    list.id = `fl-${i}`;
+    list.innerHTML = '<div class="small">Αρχεία:</div><ul id="flul-'+i+'"></ul>';
+
+    tasklist.appendChild(row);
+    row.after(list);
+
+    if(t.owner==='Client' && !clientOnlyChk.checked){
+      const li = document.createElement('li'); li.textContent = t.title; clientNow.appendChild(li);
+    }
+    if(isDone) done++;
+  });
+
+  statTotal.textContent = total;
+  statDone.textContent = done;
+  statOpen.textContent = Math.max(total-done,0);
+  statOverdue.textContent = overdue;
+
+  updateProgress();
+  updateWaveStatus();
+  saveToLocal();
+}
+
+function updateProgress(){
+  const cur = Number(phaseSel.value);
+  ensureWaveState(cur);
+  const arr = state.tasks[cur];
+  const total = TASKS[cur].length;
+  const done = arr.filter(x=>x.done).length;
+  const pct = total? Math.round(done*100/total) : 0;
+  pbar.style.width = pct+'%';
+}
+
+function updateWaveStatus(){
+  const cur = Number(phaseSel.value);
+  const arr = state.tasks[cur];
+  const dates = arr.map(x=>x.date);
+  const autoMax = maxDateStr(dates);
+  const wd = waveDeadlineInput.value;
+  const use = wd || autoMax || "";
+  waveEta.textContent = "";
+  waveDot.className = "status-dot status-grey";
+  waveDeadlineInput.classList.remove('wd-grey','wd-ok','wd-warn','wd-danger');
+  waveDeadlineInput.classList.add(waveDeadlineClass(wd));
+
+  if(use){
+    const tday = todayStr();
+    const diff = daysBetween(tday, use);
+    if(diff < 0){
+      waveEta.textContent = `Καθυστέρηση: ${Math.abs(diff)} ημέρες`;
+      waveDot.className = "status-dot status-danger";
+    }else if(diff <= 7){
+      waveEta.textContent = `Υπολειπόμενες ημέρες: ${diff}`;
+      waveDot.className = "status-dot status-warn";
+    }else{
+      waveEta.textContent = `Υπολειπόμενες ημέρες: ${diff}`;
+      waveDot.className = "status-dot status-ok";
+    }
+  }
+  state.waveDeadline = wd;
+  saveToLocal();
+}
+
+tasklist.addEventListener('change', async (e)=>{
+  const cur = Number(phaseSel.value);
+  ensureWaveState(cur);
+  const el = e.target;
+
+  if(el.classList.contains('chk')){
+    const idx = Number(el.dataset.idx);
+    state.tasks[cur][idx].done = el.checked;
+    renderTasks();
+  }else if(el.classList.contains('dte')){
+    const idx = Number(el.dataset.idx);
+    state.tasks[cur][idx].date = el.value;
+    renderTasks();
+  }else if(el.classList.contains('file')){
+    const idx = Number(el.dataset.idx);
+    const files = await readFilesToData(el.files || []);
+    if(files.length){
+      state.tasks[cur][idx].files.push(...files);
+      refreshFileCounter(cur, idx);
+      saveToLocal();
+      renderFilesList(cur, idx);
+    }
+    el.value = '';
+  }
+
+  if(el.classList.contains('file-flag-ud') || el.classList.contains('file-flag-cmt') || el.classList.contains('file-flag-acc')){
+    const i = Number(el.dataset.i);
+    const k = Number(el.dataset.k);
+    const file = state.tasks[cur][i].files[k];
+    if(!file.flags) file.flags = {ud:false, cmt:false, acc:false};
+
+    if(el.classList.contains('file-flag-ud'))  file.flags.ud  = el.checked;
+    if(el.classList.contains('file-flag-cmt')) file.flags.cmt = el.checked;
+    if(el.classList.contains('file-flag-acc')){ file.flags.acc = el.checked; if(file.flags.acc){ file.flags.ud=false; file.flags.cmt=false; } }
+    saveToLocal();
+    renderFilesList(cur, i);
+  }
+});
+
+tasklist.addEventListener('click', async (e)=>{
+  const cur = Number(phaseSel.value);
+  ensureWaveState(cur);
+  const target = e.target;
+
+  if(target.classList && target.classList.contains('file')){
+    const idx = Number(target.dataset.idx);
+    const files = await readFilesToData(target.files || []);
+    if(files.length){
+      state.tasks[cur][idx].files.push(...files);
+      refreshFileCounter(cur, idx);
+      saveToLocal();
+      renderFilesList(cur, idx);
+    }
+    target.value = '';
+  }
+
+  if(target.classList && target.classList.contains('view')){
+    const idx = Number(target.dataset.idx);
+    const box = document.getElementById(`fl-${idx}`);
+    if(box){ box.classList.toggle('hidden'); renderFilesList(cur, idx); }
+  }
+
+  if(target.classList && target.classList.contains('del-file')){
+    const idx = Number(target.dataset.idx);
+    const k = Number(target.dataset.k);
+    state.tasks[cur][idx].files.splice(k,1);
+    refreshFileCounter(cur, idx);
+    saveToLocal();
+    renderFilesList(cur, idx);
+  }
+});
+
+function formatCounter(files){
+  const total = (files||[]).length;
+  const acc = (files||[]).filter(f=>f.flags && f.flags.acc).length;
+  return `${acc}/${total}`;
+}
+function refreshFileCounter(wave, idx){
+  const span = document.getElementById(`fcount-${idx}`);
+  if(!span) return;
+  const files = state.tasks[wave][idx].files || [];
+  span.textContent = formatCounter(files);
+}
+
+function renderFilesList(wave, idx){
+  ensureWaveState(wave);
+  const files = state.tasks[wave][idx].files || [];
+  const ul = document.getElementById('flul-'+idx);
+  if(!ul) return;
+  ul.innerHTML = '';
+
+  files.forEach((f,k)=>{
+    if(!f.flags) f.flags = {ud:false, cmt:false, acc:false};
+    const li = document.createElement('li');
+    li.style.margin = '6px 0';
+
+    const a = document.createElement('a');
+a.textContent = `${f.name} (${Math.round((f.size||0)/1024)} KB)`;
+
+if (f.storage_bucket && f.storage_path){
+  a.textContent = 'Φόρτωση link...';
+  supa.storage.from(f.storage_bucket).createSignedUrl(f.storage_path, 3600)
+    .then(({ data, error })=>{
+      if(!error && data?.signedUrl){
+        a.href = data.signedUrl;
+        a.download = f.name;
+        a.textContent = `${f.name} (${Math.round((f.size||0)/1024)} KB)`;
+      }else{
+        a.textContent = `${f.name} — (δεν βρέθηκε link)`;
+      }
+    });
+} else {
+  a.href = f.dataUrl || '#';
+  a.download = f.name;
+}
+li.appendChild(a);
+
+
+    const l1 = document.createElement('label');
+    l1.className = 'file-flag';
+    l1.title = 'Under Development';
+    l1.innerHTML = `<input type="checkbox" class="file-flag-ud" data-i="${idx}" data-k="${k}" ${f.flags.ud?'checked':''}/> UD`;
+    li.appendChild(l1);
+
+    const l2 = document.createElement('label');
+    l2.className = 'file-flag';
+    l2.title = 'Has Comments';
+    l2.innerHTML = `<input type="checkbox" class="file-flag-cmt" data-i="${idx}" data-k="${k}" ${f.flags.cmt?'checked':''}/> CMT`;
+    li.appendChild(l2);
+
+    const l3 = document.createElement('label');
+    l3.className = 'file-flag';
+    l3.title = 'Accepted / Final';
+    l3.innerHTML = `<input type="checkbox" class="file-flag-acc" data-i="${idx}" data-k="${k}" ${f.flags.acc?'checked':''}/> ACC`;
+    li.appendChild(l3);
+
+    const del = document.createElement('button');
+    del.textContent = 'Διαγραφή';
+    del.className = 'del-file';
+    del.dataset.idx = String(idx);
+    del.dataset.k = String(k);
+    li.appendChild(del);
+
+    const badge = document.createElement('span');
+    badge.className = 'badge-acc ' + (f.flags.acc?'ok':'');
+    badge.textContent = f.flags.acc ? 'Accepted' : 'Draft';
+    li.appendChild(badge);
+
+    ul.appendChild(li);
+  });
+
+  refreshFileCounter(wave, idx);
+}
+
+// ===== Save / Load JSON =====
+document.getElementById('save').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:`sword_tracker_state_wave${state.wave}.json`});
+  a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById('loadBtn').onclick = ()=> document.getElementById('load').click();
+document.getElementById('load').onchange = async (e)=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const txt = await f.text();
+  try{
+    const data = JSON.parse(txt);
+    if(typeof data==='object' && data.tasks){
+      state.wave = Number(data.wave)||1;
+      state.waveDeadline = data.waveDeadline||"";
+      state.clientOnly = !!data.clientOnly;
+      state.tasks = data.tasks;
+      phaseSel.value = String(state.wave);
+      waveDeadlineInput.value = state.waveDeadline || "";
+      clientOnlyChk.checked = state.clientOnly;
+      upgradeFileSchema();
+      renderTasks(); saveToLocal();
+    }else alert('Μη έγκυρο αρχείο JSON');
+  }catch(err){ alert('Σφάλμα φόρτωσης JSON'); }
+};
+
+function makeICS(){
+  const cur = Number(phaseSel.value); const items = TASKS[cur];
+  const arr = state.tasks[cur] || [];
+  let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//SWORD//AI-ACT-TRACKER//EL\n';
+  items.forEach((t,i)=>{
+    const dd = arr[i]?.date || "";
+    if(t.owner==='Client' && dd){
+      const dt = dd.replaceAll('-','');
+      ics += `BEGIN:VEVENT\nUID:${Date.now()}-${i}@sword\nDTSTAMP:${dt}T090000\nDTSTART:${dt}T090000\nSUMMARY:${t.title}\nDESCRIPTION:Wave ${cur} – Client task\nEND:VEVENT\n`;
+    }
+  });
+  ics += 'END:VCALENDAR';
+  const blob = new Blob([ics],{type:'text/calendar'}); const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), {href:url, download:`sword_wave${cur}_client_tasks.ics`}); a.click(); URL.revokeObjectURL(url);
+}
+document.getElementById('ics').onclick = makeICS;
+
+// ===== INIT =====
+(function init(){
+  loadFromLocal();
+  upgradeFileSchema();
+  renderTasks();
+  document.getElementById('go').onclick = ()=>{
+    const f = document.getElementById('file').files[0];
+    const useQ = document.getElementById('useQ');
+    if(useQ && useQ.checked){
+      if(!QDATA.systems || QDATA.systems.length===0){ alert('Δεν υπάρχουν συστήματα στο Ερωτηματολόγιο.'); return; }
+      const {SD, SV} = synthesizeSheetsFromQ(QDATA);
+      // Reuse the same rendering path by mapping into rows
+      (async ()=>{
+        // Build a pseudo file run by duplicating logic
+        const colIdxs = sysCols(SD);
+        const names = systemNames(SD, colIdxs);
+        const rows = [], obRows = [];
+        for(let i=0;i<colIdxs.length;i++){
+          const idx = colIdxs[i];
+          const name = names[i];
+          const ai = aiFlag(SV, idx);
+          const role = roleFrom(SV, idx);
+          const scope = scopeFlag(SV, idx);
+          const risk = riskFlag(SV, idx);
+          rows.push({"Σύστημα":name, "Είναι AI;":ai, "Ρόλος Οντότητας":role, "Πεδίο Εφαρμογής":scope, "Επίπεδο Κινδύνου":risk});
+          const key = `${role}|${risk.startsWith('Υψηλού Κινδύνου')?'High-Risk':(risk==='Περιορισμένου Κινδύνου'?'Limited':'')}`;
+          (OBLIGATIONS[key]||[]).forEach(ob=> obRows.push({"Σύστημα":name, "Ρόλος":role, "Κίνδυνος":risk, "Υποχρέωση":ob}));
+        }
+        const out = document.getElementById('out');
+        const table1 = [`<h3>Σύνοψη</h3><table><thead><tr><th>Σύστημα</th><th>Είναι AI;</th><th>Ρόλος Οντότητας</th><th>Πεδίο Εφαρμογής</th><th>Επίπεδο Κινδύνου</th></tr></thead><tbody>`,
+          ...rows.map(r=>`<tr><td>${r["Σύστημα"]}</td><td>${r["Είναι AI;"]}</td><td>${r["Ρόλος Οντότητας"]||''}</td><td>${r["Πεδίο Εφαρμογής"]}</td><td>${riskPill(r["Επίπεδο Κινδύνου"])}</td></tr>`),
+        `</tbody></table>`].join('');
+        const table2 = [`<h3 style="margin-top:18px;">Υποχρεώσεις (σύνοψη)</h3><table><thead><tr><th>Σύστημα</th><th>Ρόλος</th><th>Κίνδυνος</th><th>Υποχρέωση</th></tr></thead><tbody>`,
+          ...obRows.map(r=>`<tr><td>${r["Σύστημα"]}</td><td>${r["Ρόλος"]}</td><td>${r["Κίνδυνος"]}</td><td>${r["Υποχρέωση"]}</td></tr>`),
+        `</tbody></table>`].join('');
+        out.innerHTML = table1 + table2;
+        const csvBtn = document.getElementById('csv');
+        const pdfBtn = document.getElementById('pdf');
+        const csv = toCSV(rows);
+        csvBtn.onclick = ()=>{ const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a = Object.assign(document.createElement('a'), {href:url, download:'summary.csv'}); a.click(); URL.revokeObjectURL(url); };
+        csvBtn.style.display = 'inline-block';
+        pdfBtn.style.display = 'inline-block';
+      })();
+      return;
+    }
+    if(!f){ alert('Διάλεξε Excel πρώτα ή τσέκαρε "Χρήση δεδομένων Ερωτηματολόγιο".'); return; }
+    run(f).catch(err=>alert(err.message||'Σφάλμα ανάγνωσης Excel'));
+  };
+})();
+
+// ======== Questionnaire (QDATA) ========
+const QUESTIONS = {
+  "Q1.1":"Είναι machine-based και λειτουργεί με κάποιο επίπεδο αυτονομίας; (Άρ.3(1), Recital 12)",
+  "Q1.2":"Μπορεί να κάνει inference από εισόδους για να παράγει outputs (predictions/recommendations/decisions/content);",
+  "Q1.3":"Οι στόχοι είναι ρητοί/σιωπηροί (explicit/implicit objectives) και καθοδηγούν το output;",
+  "Q1.4":"Υπάρχει πιθανότητα adaptiveness μετά την εγκατάσταση (self-learning κατά τη χρήση);",
+  "Q1.5":"Βασίζεται σε AI τεχνικές (ML ή logic/knowledge-based) που ενεργοποιούν inference;",
+  "Q2.1.1":"Ο πελάτης αναπτύσσει ή βάζει το όνομά του και θέτει σε κυκλοφορία το AIS; (Provider)",
+  "Q2.1.2":"Ο πελάτης χρησιμοποιεί το AIS υπό την εξουσία του; (Deployer)",
+  "Q2.1.3":"Ο πελάτης εισάγει στην ΕΕ AIS που φέρει εμπορικό σήμα τρίτης χώρας; (Importer)",
+  "Q2.1.4":"Ο πελάτης διαθέτει το AIS στην αγορά της ΕΕ ως ενδιάμεσος; (Distributor)",
+  "Q2.1.5":"Ενεργεί ως εξουσιοδοτημένος αντιπρόσωπος Provider εκτός ΕΕ; (Authorised Representative)",
+  "Q2.2.1":"Downstream οντότητα που έθεσε εμπορικό σήμα/όνομα σε High-Risk AIS;  (→ Provider, Άρ.16)",
+  "Q2.2.2":"Έκανε ουσιώδη τροποποίηση High-Risk AIS; (→ Provider)",
+  "Q2.2.3":"Τροποποίησε τον σκοπό μη High-Risk ώστε να καταστεί High-Risk; (→ Provider)",
+  "Q3.1":"Καθαρά στρατιωτική/άμυνα/εθνική ασφάλεια ή ορισμένη επιβολή νόμου/δικαστική συνεργασία; (Εκτός)",
+  "Q3.2":"Αποκλειστικά R&D (πριν την αγορά/θέση σε υπηρεσία); (Εκτός)",
+  "Q3.3":"Χρήση από φυσικό πρόσωπο αποκλειστικά ιδιωτικά/μη επαγγελματικά; (Εκτός)",
+  "Q3.4":"Open-source AIS εκτός αν είναι High-Risk/Prohibited/Art.50; (Εκτός)",
+  "Q3.5":"Provider/Deployer εντός ΕΕ; (Εντός)",
+  "Q3.6":"Provider/Deployer εκτός ΕΕ αλλά output χρησιμοποιείται εντός ΕΕ; (Εντός)",
+  "Q3.7":"Importer/Distributor/AR εντός ΕΕ; (Εντός)",
+  "Q4.1":"Subliminal/manipulative/deceptive τεχνικές που στρεβλώνουν συμπεριφορά με σημαντική βλάβη;",
+  "Q4.2":"Εκμετάλλευση ευαλωτοτήτων (ηλικία/αναπηρία/κοινωνικοοικονομική) με σημαντική βλάβη;",
+  "Q4.3":"Βιομετρική κατηγοριοποίηση ευαίσθητων γνωρισμάτων (π.χ. πολιτικές απόψεις, θρησκεία, σεξουαλικός προσανατολισμός κ.λπ.);",
+  "Q4.4":"Κοινωνική βαθμολόγηση (social scoring) οδηγώντας σε δυσμενή μεταχείριση;",
+  "Q4.5":"Εκτίμηση κινδύνου τέλεσης εγκλήματος μόνο βάσει profiling/προσωπικότητας;",
+  "Q4.6":"Βάσεις αναγνώρισης προσώπου από untargeted scraping internet/CCTV;",
+  "Q4.7":"Emotion inference σε εργασία/εκπαίδευση (εκτός ιατρικής/ασφάλειας);",
+  "Q4.8":"Real-time RBI σε δημόσια πρόσβαση (με εξαιρέσεις που ρυθμίζονται αυστηρά);",
+  "Q4.8.1":"(Ό,τι άλλο έχεις ορίσει ως επέκταση Art.5 στο AISQ σου)",
+  "Q5.3":"Πτώση σε τομέα/χρήση Annex III (π.χ. πρόσβαση εκπαίδευσης, απασχόληση, κρίσιμες υποδομές…);",
+  "Q5.3.1":"Χρήση ως safety component/προϊόν υπό τομεακή νομοθεσία ΕΕ;",
+  "Q5.3.2":"Συστήματα που αξιολογούν επιλεξιμότητα/πίστωση/κ.λπ.;",
+  "Q5.3.3":"Μετανάστευση/σύνορα/ασφάλεια παραδείγματα Annex III;",
+  "Q5.3.4":"Διοίκηση δικαιοσύνης/δημοκρατικές διαδικασίες;",
+  "Q5.3.5":"(Άλλη εξειδίκευση του Annex III που έχεις στο AISQ)",
+  "Q5.4":"Εμπίπτει σε εξαίρεση/μη εφαρμογή του Art.6 για συγκεκριμένη χρήση;",
+  "Q5.4.1":"Human-in-the-loop/low-impact διαμόρφωση που βγάζει από High-Risk;",
+  "Q5.4.2":"Demonstrably δεν επηρεάζει ουσιωδώς δικαιώματα/ασφάλεια;",
+  "Q5.4.3":"(Τομεακή εξαίρεση)",
+  "Q5.4.4":"(Άλλη εξαίρεση που έχετε)",
+  "Q6.2":"Generative/Content AI που απαιτεί σήμανση (π.χ. deepfakes, synthetic media);",
+  "Q6.3":"Chatbots/AI assistants που χρειάζονται ενημέρωση χρήστη ότι «μιλάει με AI»;",
+  "Q6.4":"Emotion/biometric categorisation εκτός Art.5, με απαιτήσεις transparency;",
+  "Q6.5":"Recommenders/outputs που πρέπει να δηλώνονται ως παραγόμενα από AI;",
+  "Q6.6":"Άλλη περίπτωση Art.50 transparency;",
+  "Q6.6.1":"(Εξειδίκευση transparency στο AISQ)"
+};
+
+function qLabel(qid){ return (QUESTIONS[qid]||""); }
+
+let QDATA = { entity:{legal_name:"", vat:"", type:""}, systems:[], meta:{schema_version:"1.0"} };
+const QKEY = 'qdata_v1';
+
+function saveQ(){
+  localStorage.setItem(QKEY, JSON.stringify(QDATA));
+  const qs = document.getElementById('q-status');
+  if(qs){ qs.textContent = "Αποθηκεύτηκε ("+new Date().toLocaleString()+")"; }
+}
+function loadQ(){
+  try{
+    const raw = localStorage.getItem(QKEY);
+    if(raw){ QDATA = JSON.parse(raw); }
+  }catch(e){ console.warn('Load QDATA failed', e); }
+}
+function bindEntity(){
+  const en = document.getElementById('ent-name');
+  const ev = document.getElementById('ent-vat');
+  const et = document.getElementById('ent-type');
+  en.value = QDATA.entity.legal_name||"";
+  ev.value = QDATA.entity.vat||"";
+  et.value = QDATA.entity.type||"";
+  en.oninput = ()=>{ QDATA.entity.legal_name = en.value; saveQ(); };
+  ev.oninput = ()=>{ QDATA.entity.vat = ev.value; saveQ(); };
+  et.oninput = ()=>{ QDATA.entity.type = et.value; saveQ(); };
+}
+
+const Q1 = ["Q1.1","Q1.2","Q1.3","Q1.4","Q1.5"];
+const Q2_1 = ["Q2.1.1","Q2.1.2","Q2.1.3","Q2.1.4","Q2.1.5"];
+const Q2_2 = ["Q2.2.1","Q2.2.2","Q2.2.3"];
+const Q3 = ["Q3.1","Q3.2","Q3.3","Q3.4","Q3.5","Q3.6","Q3.7"];
+const Q4 = ["Q4.1","Q4.2","Q4.3","Q4.4","Q4.5","Q4.6","Q4.7","Q4.8","Q4.8.1"];
+const Q5_hi = ["Q5.3","Q5.3.1","Q5.3.2","Q5.3.3","Q5.3.4","Q5.3.5"];
+const Q5_exc = ["Q5.4","Q5.4.1","Q5.4.2","Q5.4.3","Q5.4.4"];
+const Q6_lim = ["Q6.2","Q6.3","Q6.4","Q6.5","Q6.6","Q6.6.1"];
+
+function ensureSystem(i){
+  if(!QDATA.systems[i]){
+    QDATA.systems[i] = { name:"Σύστημα #"+(i+1), q:{} };
+  }
+  const all = [].concat(Q1,Q2_1,Q2_2,Q3,Q4,Q5_hi,Q5_exc,Q6_lim,"Q0.2");
+  all.forEach(k=>{ if(QDATA.systems[i].q[k]===undefined){ QDATA.systems[i].q[k] = "N"; } });
+}
+
+function anyYesQ(qObj, list){ return list.some(k => String(qObj[k]||"N").toUpperCase()==="Y"); }
+function aiFromQ(q){ return anyYesQ(q, Q1) ? "Ναι" : "Όχι"; }
+function roleFromQ(q){
+  if(anyYesQ(q, ["Q2.1.1"])) return "Provider";
+  let base = "Άγνωστος";
+  if(anyYesQ(q, ["Q2.1.2"])) base="Deployer";
+  else if(anyYesQ(q, ["Q2.1.3"])) base="Importer";
+  else if(anyYesQ(q, ["Q2.1.4"])) base="Distributor";
+  else if(anyYesQ(q, ["Q2.1.5"])) base="Authorised Representative";
+  if(["Deployer","Importer","Distributor","Authorised Representative"].includes(base) && anyYesQ(q, Q2_2)) return "Provider";
+  return base;
+}
+function scopeFromQ(q){
+  if(anyYesQ(q, ["Q3.1","Q3.2","Q3.3","Q3.4"])) return "Εκτός Πεδίο";
+  if(anyYesQ(q, ["Q3.5","Q3.6","Q3.7"])) return "Εντός Πεδίο";
+  return "Άγνωστο";
+}
+function riskFromQ(q){
+  if(anyYesQ(q, Q4)) return "Απαγορευμένο";
+  if(anyYesQ(q, Q5_hi)) return anyYesQ(q, Q5_exc) ? "Υψηλού Κινδύνου (εξαίρεση)" : "Υψηλού Κινδύνου";
+  if(anyYesQ(q, Q6_lim)) return "Περιορισμένου Κινδύνου";
+  return "Ελάχιστου/Άγνωστου";
+}
+function previewBadgesHTML(q){
+  const ai = aiFromQ(q), role=roleFromQ(q), scope=scopeFromQ(q), risk=riskFromQ(q);
+  const riskCls = /^Υψηλού Κινδύνου/.test(risk) ? 'risk-high' : (risk==='Περιορισμένου Κινδύνου'?'risk-limited':(risk==='Απαγορευμένο'?'risk-proh':'risk-min'));
+  return `<div class="sys-preview">
+    <span class="pill">${ai==='Ναι'?'AI: Ναι':'AI: Όχι'}</span>
+    <span class="pill">${role||''}</span>
+    <span class="pill">${scope}</span>
+    <span class="pill ${riskCls}">${risk}</span>
+  </div>`;
+}
+
+function renderSystems(){
+  const wrap = document.getElementById('systems');
+  wrap.innerHTML = "";
+  QDATA.systems.forEach((sys, i)=>{
+    ensureSystem(i);
+    const card = document.createElement('div');
+    card.className = 'sys-card';
+    card.innerHTML = `
+      <div class="sys-head">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="sys-toggle" data-i="${i}">Σύστημα #${i+1}</button>
+          <input value="${sys.name||''}" placeholder="Όνομα συστήματος (Q0.2)" style="background:#0b1322;color:#e6eefc;border:1px solid #334155;border-radius:8px;padding:6px;min-width:280px" />
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-small" data-act="dup" data-i="${i}">Duplic.</button>
+          <button class="btn-small danger" data-act="del" data-i="${i}">Διαγραφή</button>
+        </div>
+      </div>
+      <div class="sys-body">
+        <div class="sys-preview-holder"></div>
+        <div class="qgroup" data-group="Q1">
+          <div class="muted collapse-btn">Q1 – AI Flag</div>
+          <div class="qset">${Q1.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+        <div class="qgroup" data-group="Q2.1">
+          <div class="muted collapse-btn">Q2.1 – Entity Role (1st level)</div>
+          <div class="qset">${Q2_1.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+        <div class="qgroup" data-group="Q2.2">
+          <div class="muted collapse-btn">Q2.2 – Downstream→Provider (2nd level)</div>
+          <div class="qset">${Q2_2.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+        <div class="qgroup" data-group="Q3">
+          <div class="muted collapse-btn">Q3 – Scope</div>
+          <div class="qset">${Q3.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+        <div class="qgroup" data-group="Q4">
+          <div class="muted collapse-btn">Q4 – Prohibited (Art.5) indicators</div>
+          <div class="qset">${Q4.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+        <div class="qgroup" data-group="Q5">
+          <div class="muted collapse-btn">Q5.3 / Q5.4 – High-Risk (+exemptions)</div>
+          <div class="qset">${Q5_hi.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}
+          ${Q5_exc.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+        <div class="qgroup" data-group="Q6">
+          <div class="muted collapse-btn">Q6.2–Q6.6 – Limited Risk / Transparency</div>
+          <div class="qset">${Q6_lim.map(q=>`<label class="qitem" title="${qLabel(q)}"><div class="qline"><input type="checkbox" data-q="${q}" data-i="${i}"><span class="qid">${q}</span></div><div class="qtext">${qLabel(q)}</div></label>`).join('')}</div>
+        </div>
+      </div>
+    `;
+    const nameInput = card.querySelector('input[placeholder="Όνομα συστήματος (Q0.2)"]');
+    nameInput.oninput = ()=>{ sys.name = nameInput.value; sys.q["Q0.2"] = nameInput.value; saveQ(); const pv = card.querySelector('.sys-preview-holder'); if(pv) pv.innerHTML = previewBadgesHTML(sys.q); };
+    card.querySelectorAll('input[type=checkbox][data-q]').forEach(chk=>{
+      const qid = chk.getAttribute('data-q');
+      chk.checked = (sys.q[qid]||"N").toUpperCase()==="Y";
+      chk.onchange = ()=>{ sys.q[qid] = chk.checked ? "Y":"N"; saveQ(); const pv = card.querySelector('.sys-preview-holder'); if(pv) pv.innerHTML = previewBadgesHTML(sys.q); };
+    });
+    card.querySelectorAll('button.btn-small').forEach(btn=>{
+      const act = btn.getAttribute('data-act');
+      const idx = parseInt(btn.getAttribute('data-i'));
+      btn.onclick = ()=>{
+        if(act==='del'){ QDATA.systems.splice(idx,1); renderSystems(); saveQ(); }
+        if(act==='dup'){ const clone = JSON.parse(JSON.stringify(QDATA.systems[idx])); clone.name += " (copy)"; QDATA.systems.splice(idx+1,0,clone); renderSystems(); saveQ(); }
+      };
+    });
+    const sysToggle = card.querySelector('.sys-toggle');
+    sysToggle.onclick = ()=>{ card.classList.toggle('collapsed'); };
+    const pv = card.querySelector('.sys-preview-holder'); if(pv) pv.innerHTML = previewBadgesHTML(sys.q);
+    document.getElementById('systems').appendChild(card);
+  });
+  applyCompactMode();
+}
+
+function addSystem(){
+  QDATA.systems.push({ name: "Σύστημα #"+(QDATA.systems.length+1), q:{} });
+  renderSystems(); saveQ();
+}
+
+function exportQ(){
+  const blob = new Blob([JSON.stringify(QDATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'questionnaire.json'; a.click(); URL.revokeObjectURL(url);
+}
+
+function importQ(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{ QDATA = JSON.parse(r.result); renderSystems(); bindEntity(); saveQ(); }
+    catch(e){ alert("Μη έγκυρο JSON"); }
+  };
+  r.readAsText(file);
+}
+
+function applyCompactMode(){
+  const compactOn = document.getElementById('toggle-compact')?.checked;
+  document.querySelectorAll('#questionnaire .qset').forEach(set=>{
+    set.classList.toggle('compact', !!compactOn);
+  });
+}
+
+function initReadabilityControls(){
+  const tgl = document.getElementById('toggle-compact');
+  if(tgl){ tgl.onchange = applyCompactMode; }
+  document.getElementById('questionnaire').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.collapse-btn');
+    if(btn){
+      const grp = btn.closest('.qgroup');
+      grp.classList.toggle('collapsed');
+    }
+  });
+}
+
+function synthesizeSheetsFromQ(qd){
+  const systems = qd.systems || [];
+  const SD = [];
+  const sdHeader = ["", ...systems.map((_,i)=>"SYSTEM #"+(i+1))];
+  SD.push(sdHeader);
+  const rowQ02 = Array(sdHeader.length).fill("");
+  rowQ02[0] = "Q0.2";
+  systems.forEach((s, i)=>{ rowQ02[i+1] = (s.name||s.q["Q0.2"]||("Σύστημα #"+(i+1))); });
+  SD.push(rowQ02);
+
+  const SV = [];
+  const svHeader = ["", ...systems.map((_,i)=>"SYSTEM #"+(i+1))];
+  SV.push(svHeader);
+
+  function pushQRow(qidList){
+    qidList.forEach(qid=>{
+      const row = Array(svHeader.length).fill("");
+      row[0] = qid;
+      systems.forEach((s, i)=>{ row[i+1] = (s.q[qid]||"N"); });
+      SV.push(row);
+    });
+  }
+  pushQRow(Q1); pushQRow(Q2_1); pushQRow(Q2_2); pushQRow(Q3); pushQRow(Q4); pushQRow(Q5_hi); pushQRow(Q5_exc); pushQRow(Q6_lim);
+  return {SD, SV};
+}
+
+// ===== PDF EXPORT (Summary -> PDF) =====
+async function exportSummaryPDF(){
+  const out = document.getElementById('out');
+  if(!out || !out.innerHTML.trim()){
+    alert('Δεν υπάρχει περιεχόμενο στη Σύνοψη για εξαγωγή. Τρέξε πρώτα το Excel ή το QDATA.');
+    return;
+  }
+  const wrapper = document.createElement('div');
+  wrapper.style.padding = '16px';
+  wrapper.style.background = '#ffffff';
+  wrapper.style.color = '#111827';
+  wrapper.style.width = out.clientWidth ? (out.clientWidth + 'px') : '980px';
+
+  const brand = document.querySelector('.brand')?.cloneNode(true) || document.createElement('div');
+  brand.style.marginBottom = '10px';
+  const summaryClone = out.cloneNode(true);
+  summaryClone.querySelectorAll('.pill').forEach(p=>{ p.style.border = '1px solid #ddd'; });
+
+  wrapper.appendChild(brand);
+  const h = document.createElement('h2');
+  h.textContent = 'Σύνοψη ταξινόμησης';
+  h.style.margin = '8px 0 6px';
+  wrapper.appendChild(h);
+  wrapper.appendChild(summaryClone);
+
+  document.body.appendChild(wrapper);
+  const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+  document.body.removeChild(wrapper);
+
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth - 20;
+  const imgHeight = canvas.height * imgWidth / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = 10;
+  pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight, '', 'FAST');
+  heightLeft -= (pageHeight - 20);
+
+  while (heightLeft > 0){
+    pdf.addPage();
+    position = 10 - (imgHeight - heightLeft);
+    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight, '', 'FAST');
+    heightLeft -= (pageHeight - 20);
+  }
+
+  pdf.save('AI-Act_Summary.pdf');
+}
+
+(function bindPDF(){
+  const pdfBtn = document.getElementById('pdf');
+  if(pdfBtn){ pdfBtn.onclick = exportSummaryPDF; }
+})();
+
+(function initQuestionnaire(){
+  loadQ();
+  setTimeout(()=>{
+    const btnAdd = document.getElementById('add-system');
+    const btnExp = document.getElementById('export-q');
+    const btnImp = document.getElementById('import-q-btn');
+    const inpImp = document.getElementById('import-q');
+    if(btnAdd){ btnAdd.onclick = addSystem; }
+    if(btnExp){ btnExp.onclick = exportQ; }
+    if(btnImp){ btnImp.onclick = ()=>inpImp.click(); }
+    if(inpImp){ inpImp.onchange = ()=>{ if(inpImp.files && inpImp.files[0]) importQ(inpImp.files[0]); }; }
+    bindEntity();
+    renderSystems();
+    initReadabilityControls();
+  }, 0);
+})();
+
+</script>
+</body>
+</html>

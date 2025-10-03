@@ -270,9 +270,12 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   ui((await supa.auth.getUser()).data.user);
   login.onclick = async ()=>{
     if(!email.value) return alert('βάλε email');
-    const { error } = await supa.auth.signInWithOtp({ email: email.value, options:{ emailRedirectTo: window.location.href }});
-    if(error) alert(error.message); else alert('Σου στείλαμε magic link.');
-  };
+   const REDIRECT_URL = "https://andreaskouvaris96.github.io/sword-ai-act-poc/"; // με ΚΑΘΕΤΟ στο τέλος
+const { error } = await supa.auth.signInWithOtp({
+  email: email.value,
+  options:{ emailRedirectTo: REDIRECT_URL }
+});
+
   logout.onclick = async ()=>{ await supa.auth.signOut(); ui(null); };
   supa.auth.onAuthStateChange((_e,s)=>ui(s?.user||null));
 })();

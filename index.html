@@ -21,7 +21,14 @@
   .wrap{max-width:1150px;margin:30px auto;padding:0 16px}
   .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
   .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .logo{width:34px;height:34px;border-radius:7px;background:var(--accent);color:var(--ink);display:grid;place-items:center;font-weight:900}
+  .logo{
+  width:34px;
+  height:34px;
+  border-radius:7px;
+  object-fit:cover;
+  display:block;
+}
+
   h1{font-size:22px;margin:0 0 2px}
   p{color:var(--muted);margin:4px 0 14px}
 
@@ -147,7 +154,7 @@
   <div class="wrap">
     <div class="card">
       <div class="brand">
-        <div class="logo">SW</div>
+        <img class="logo" src="sword-logo.png" alt="SWORD logo">
         <div>
           <h1>SWORD – EU AI Act: Σύνοψη & Tracker (v3.2)</h1>
           <p>Traffic lights ανά task & wave • Autosave • XLSX parsing • JSON export/import • ICS export • PDF export.</p>
@@ -268,19 +275,11 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   }
 
   ui((await supa.auth.getUser()).data.user);
- const REDIRECT_URL = "https://andreaskouvaris96.github.io/sword-ai-act-poc/index.html";
-
-login.onclick = async ()=>{
-  if(!email.value) return alert('βάλε email');
-  const { error } = await supa.auth.signInWithOtp({
-    email: email.value,
-    options: { emailRedirectTo: REDIRECT_URL }
-  });
-  if(error) alert(error.message);
-  else alert('Σου στείλαμε magic link.');
-};
-
-
+  login.onclick = async ()=>{
+    if(!email.value) return alert('βάλε email');
+    const { error } = await supa.auth.signInWithOtp({ email: email.value, options:{ emailRedirectTo: window.location.href }});
+    if(error) alert(error.message); else alert('Σου στείλαμε magic link.');
+  };
   logout.onclick = async ()=>{ await supa.auth.signOut(); ui(null); };
   supa.auth.onAuthStateChange((_e,s)=>ui(s?.user||null));
 })();

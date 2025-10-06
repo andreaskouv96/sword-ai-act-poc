@@ -319,15 +319,36 @@ function scopeFlag(sheet,colIdx){
   return "Άγνωστο";
 }
 function riskFlag(sheet,colIdx){
-  if(anyYes(sheet,["Q4.1","Q4.2","Q4.3","Q4.4","Q4.5","Q4.6","Q4.7","Q4.8","Q4.8.1"],colIdx)) return "Απαγορευμένο";
-  const high=["Q5.3","Q5.3.1","Q5.3.2","Q5.3.3","Q5.3.4","Q5.3.5"], lim=["Q6.2","Q6.3","Q6.4","Q6.5","Q6.6","Q6.6.1"];
-  if(anyYes(sheet,high,colIdx)) return anyYes(sheet,["Q5.4","Q5.4.1","Q5.4.2","Q5.4.3","Q5.4.4"],colIdx)?"Υψηλού Κινδύνου (εξαίρεση)":"Υψηλού Κινδύνου";
-  if(anyYes(sheet,lim,colIdx)) return "Περιορισμένου Κινδύνου";
+  // === Q4: Prohibited (Art.5) ===
+  if(anyYes(sheet,["Q4.1","Q4.2","Q4.3","Q4.4","Q4.5","Q4.6","Q4.7","Q4.8","Q4.8.1"],colIdx))
+    return "Απαγορευμένο";
+
+  // === Q5: High-Risk & Exemptions (Art.6) ===
+  const high = ["Q5.3","Q5.3.1","Q5.3.2","Q5.3.3","Q5.3.4","Q5.3.5"];
+  const exc  = ["Q5.4","Q5.4.1","Q5.4.2","Q5.4.3","Q5.4.4"];
+  const lim  = ["Q6.2","Q6.3","Q6.4","Q6.5","Q6.6","Q6.6.1"];
+
+  const isHigh = anyYes(sheet, high, colIdx);
+  const isExc  = anyYes(sheet, exc, colIdx);
+  const isLim  = anyYes(sheet, lim, colIdx);
+
+  if(isHigh && isExc) return "Μη Υψηλού Κινδύνου (εξ. Άρ.6(3))";
+  if(isHigh) return "Υψηλού Κινδύνου";
+  if(isLim) return "Περιορισμένου Κινδύνου";
+
   return "Ελάχιστου/Άγνωστου";
 }
+
 function systemNames(sysSheet, sysIdxs){ const rowQ02 = findRowByQID(sysSheet,"Q0.2"); return sysIdxs.map((idx,i)=>{ const name = ans(rowQ02, idx); return name && name.toLowerCase()!=="nan" ? name : `Σύστημα #${i+1}`; }); }
 function pill(text, cls){ return `<span class="pill ${cls}">${text}</span>`; }
-function riskPill(r){ if(/^Υψηλού Κινδύνου/.test(r)) return pill(r,'risk-high'); if(r==="Περιορισμένου Κινδύνου") return pill(r,'risk-limited'); if(r==="Απαγορευμένο") return pill(r,'risk-proh'); return pill(r,'risk-min'); }
+function riskPill(r){
+  if(/^Μη Υψηλού Κινδύνου/.test(r)) return pill(r,'risk-min');
+  if(/^Υψηλού Κινδύνου/.test(r)) return pill(r,'risk-high');
+  if(r==="Περιορισμένου Κινδύνου") return pill(r,'risk-limited');
+  if(r==="Απαγορευμένο") return pill(r,'risk-proh');
+  return pill(r,'risk-min');
+}
+
 function toCSV(rows){ if(!rows.length) return ''; const headers = Object.keys(rows[0]); const esc = v => '"'+String(v).replace(/"/g,'""')+'"'; return [headers.join(','), ...rows.map(r=>headers.map(h=>esc(r[h]??'')).join(','))].join('\n'); }
 
 async function run(file){
@@ -959,8 +980,13 @@ function scopeFromQ(q){
 }
 function riskFromQ(q){
   if(anyYesQ(q, Q4)) return "Απαγορευμένο";
-  if(anyYesQ(q, Q5_hi)) return anyYesQ(q, Q5_exc) ? "Υψηλού Κινδύνου (εξαίρεση)" : "Υψηλού Κινδύνου";
-  if(anyYesQ(q, Q6_lim)) return "Περιορισμένου Κινδύνου";
+  const isHigh = anyYesQ(q, Q5_hi);
+  const isExc  = anyYesQ(q, Q5_exc);
+  const isLim  = anyYesQ(q, Q6_lim);
+
+  if(isHigh && isExc) return "Μη Υψηλού Κινδύνου (εξ. Άρ.6(3))";
+  if(isHigh) return "Υψηλού Κινδύνου";
+  if(isLim) return "Περιορισμένου Κινδύνου";
   return "Ελάχιστου/Άγνωστου";
 }
 function previewBadgesHTML(q){

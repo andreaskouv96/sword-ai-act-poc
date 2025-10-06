@@ -984,10 +984,12 @@ function riskFromQ(q){
   const isExc  = anyYesQ(q, Q5_exc);
   const isLim  = anyYesQ(q, Q6_lim);
 
-  if(isHigh && isExc) return "Μη Υψηλού Κινδύνου (εξ. Άρ.6(3))";
-  if(isHigh) return "Υψηλού Κινδύνου";
-  if(isLim) return "Περιορισμένου Κινδύνου";
-  return "Ελάχιστου/Άγνωστου";
+ if(isExc && isHigh) return "Μη Υψηλού Κινδύνου (εξ. Άρ.6(3))";
+if(isExc && !isHigh) return "Μη Υψηλού Κινδύνου (εξ. Άρ.6(3))"; // safe redundancy
+if(isHigh) return "Υψηλού Κινδύνου";
+if(isLim) return "Περιορισμένου Κινδύνου";
+return "Ελάχιστου/Άγνωστου";
+
 }
 function previewBadgesHTML(q){
   const ai = aiFromQ(q), role=roleFromQ(q), scope=scopeFromQ(q), risk=riskFromQ(q);

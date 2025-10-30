@@ -269,18 +269,22 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   const login = document.getElementById('login-btn');
   const logout = document.getElementById('logout-btn');
   const status = document.getElementById('auth-status');
-
+const REDIRECT = 'https://andreaskouvaris96.github.io/sword-ai-act-poc/';
   function ui(user){
     if(user){ status.textContent = ` συνδεδεμένος: ${user.email}`; login.disabled=true; email.disabled=true; logout.style.display='inline-block'; }
     else { status.textContent=''; login.disabled=false; email.disabled=false; logout.style.display='none'; }
   }
 
   ui((await supa.auth.getUser()).data.user);
-  login.onclick = async ()=>{
+ login.onclick = async ()=>{
     if(!email.value) return alert('βάλε email');
-    const { error } = await supa.auth.signInWithOtp({ email: email.value, options:{ emailRedirectTo: window.location.href }});
+    const { error } = await supa.auth.signInWithOtp({
+      email: email.value,
+      options: { emailRedirectTo: REDIRECT }   // <-- αντί για window.location.href
+    });
     if(error) alert(error.message); else alert('Σου στείλαμε magic link.');
   };
+
   logout.onclick = async ()=>{ await supa.auth.signOut(); ui(null); };
   supa.auth.onAuthStateChange((_e,s)=>ui(s?.user||null));
 })();

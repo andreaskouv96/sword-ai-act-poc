@@ -822,6 +822,18 @@ document.getElementById('ics').onclick = makeICS;
   loadFromLocal();
   upgradeFileSchema();
   renderTasks();
+  // === Wave selector event (Tracker) ===
+phaseSel.addEventListener('change', () => {
+  const newWave = Number(phaseSel.value);
+  state.wave = newWave;
+  ensureWaveState(newWave);
+  renderTasks();
+});
+
+// (προαιρετικά, για instant refresh σε status/filters)
+waveDeadlineInput.addEventListener('change', updateWaveStatus);
+clientOnlyChk.addEventListener('change', renderTasks);
+
   document.getElementById('go').onclick = ()=>{
     const f = document.getElementById('file').files[0];
     const useQ = document.getElementById('useQ');
